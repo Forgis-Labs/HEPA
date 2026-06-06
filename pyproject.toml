@@ -7,7 +7,7 @@ name = "hepa"
 version = "1.0.0"
 description = "HEPA: Horizon-conditioned Event Predictive Architecture for self-supervised event forecasting in multivariate time series."
 readme = "README.md"
-license = { file = "LICENSE.txt" }
+license = { text = "CC-BY-NC-SA-4.0" }
 requires-python = ">=3.9"
 authors = [
     { name = "Jonas Petersen", email = "jep79@cantab.ac.uk" },

@@ -2,7 +2,8 @@
 
 [![Website](https://img.shields.io/badge/Website-forgis.com-orange)](https://www.forgis.com)
 [![arXiv](https://img.shields.io/badge/arXiv-2605.11130-b31b1b)](https://arxiv.org/abs/2605.11130)
-[![Spotlight](https://img.shields.io/badge/FMSD_@_ICML_2026-Spotlight-brightgreen)]()
+[![Spotlight](https://img.shields.io/badge/FMSD_@_ICML_2026-Spotlight-brightgreen)](https://arxiv.org/abs/2605.11130)
+[![License: CC BY-NC-SA 4.0](https://img.shields.io/badge/License-CC_BY--NC--SA_4.0-lightgrey.svg)](https://creativecommons.org/licenses/by-nc-sa/4.0/)
 
 **Team:** Jonas Petersen, Gian-Alessandro Lombardi, Riccardo Maggioni, Camilla Mazzoleni, Federico Martelli, Philipp Petersen
 
@@ -70,4 +71,4 @@ PyTorch >= 2.0 required. CPU works for unit tests; a single GPU is recommended f
 
 ## License
 
-Copyright (c) 2026, Forgis Labs. All rights reserved. Licensed under the [Forgis Source Code License (Non-Commercial)](LICENSE.txt).
+Copyright (c) 2026, Forgis. Licensed under [CC BY-NC-SA 4.0](LICENSE).
