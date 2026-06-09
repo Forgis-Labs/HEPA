@@ -11,6 +11,9 @@ Expected layout under ``HEPA_DATA_DIR/SMAP``::
     labeled_anomalies.csv (optional, for entity boundaries)
 
 See ``scripts/download_data.py`` for download instructions.
+
+The benchmark uses an intra-entity chronological split with z-score-on-train;
+this loader is being aligned to that protocol.
 """
 
 from __future__ import annotations

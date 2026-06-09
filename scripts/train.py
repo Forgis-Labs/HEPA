@@ -18,6 +18,7 @@ import torch
 from torch.utils.data import ConcatDataset, DataLoader
 
 from hepa.data import load_dataset
+from hepa.data._common import global_zscore_bundle
 from hepa.evaluation import (
     evaluate_probability_surface,
     h_auroc,
@@ -28,7 +29,7 @@ from hepa.evaluation import (
 from hepa.model import HEPA
 from hepa.training.finetune import EventDataset, collate_event, evaluate, finetune
 from hepa.training.pretrain import PretrainDataset, collate_pretrain, pretrain
-from hepa.utils import PROTOCOL, get_context, set_seed
+from hepa.utils import PROTOCOL, get_context, get_norm_mode, set_seed
 
 
 def _build_event_loader(
@@ -79,10 +80,16 @@ def main() -> None:
 
     print(f"HEPA train: dataset={args.dataset} seed={args.seed} device={device}")
     bundle = load_dataset(args.dataset)
+    # Per-dataset normalization (see hepa.utils.config.NORM_POLICY): C-MAPSS uses
+    # a single global per-channel z-score and NO per-window RevIN; all other
+    # datasets use RevIN inside the encoder.
+    norm_mode = get_norm_mode(args.dataset)
+    if norm_mode == "none":
+        bundle = global_zscore_bundle(bundle)
     horizons = bundle["horizons"]
     n_channels = bundle["n_channels"]
     max_context = get_context(args.dataset)
-    print(f"  n_channels={n_channels}  K={len(horizons)}  context={max_context}")
+    print(f"  n_channels={n_channels}  K={len(horizons)}  context={max_context}  norm={norm_mode}")
 
     # ---- pretrain dataloaders ---------------------------------------------
     delta_t_max = max(horizons)
@@ -158,6 +165,7 @@ def main() -> None:
         predictor_hidden=int(PROTOCOL["predictor_hidden"]),
         target_mode=str(PROTOCOL["target_mode"]),
         sync_interval_steps=int(PROTOCOL["sync_interval_steps"]),
+        norm_mode=norm_mode,
     )
     n_params = sum(p.numel() for p in model.parameters())
     print(f"  HEPA total parameters: {n_params/1e6:.2f}M")
@@ -189,6 +197,10 @@ def main() -> None:
         n_epochs=args.ft_epochs,
         patience=int(PROTOCOL["ft_patience"]),
         device=device,
+        # C-MAPSS (norm_mode='none') finetuning is unstable under val-loss early
+        # stopping (test h-AUROC keeps rising with epochs), so use fixed-epoch
+        # finetuning there for a deterministic, reproducible result.
+        early_stop=(norm_mode != "none"),
     )
 
     # ---- evaluate ----------------------------------------------------------

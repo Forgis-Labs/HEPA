@@ -3,6 +3,9 @@
 52 process variables, 21 fault scenarios + 1 nominal. Expected layout:
 ``HEPA_DATA_DIR/TEP/TEP_FaultFree_Training.csv`` and ``TEP_Faulty_Testing.csv``
 (public Harvard Dataverse release).
+
+The benchmark marks a single fault-onset event per simulation run; this loader's
+per-timestep labeling differs and is being aligned to that protocol.
 """
 
 from __future__ import annotations
@@ -11,7 +14,7 @@ import numpy as np
 
 from hepa.data._common import chronological_split, zscore
 from hepa.data.config import DATA_DIR
-from hepa.utils.config import ANOMALY_HORIZONS
+from hepa.utils.config import get_horizons
 
 _DIR = DATA_DIR / "TEP"
 
@@ -38,6 +41,6 @@ def load_tep() -> dict:
         "pretrain_seqs": {0: train},
         **splits,
         "n_channels": int(train.shape[1]),
-        "horizons": ANOMALY_HORIZONS,
+        "horizons": get_horizons("TEP"),  # K=150 (paper Section 5.1), not 200
         "name": "TEP",
     }

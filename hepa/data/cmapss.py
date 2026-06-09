@@ -21,6 +21,7 @@ import numpy as np
 import pandas as pd
 
 from hepa.data.config import DATA_DIR
+from hepa.utils.config import get_horizons
 
 # 1-indexed sensor IDs to keep (drops 1, 5, 6, 10, 16, 18, 19 - near-constant).
 SELECTED_SENSORS: List[int] = [2, 3, 4, 7, 8, 9, 11, 12, 13, 14, 15, 17, 20, 21]
@@ -28,7 +29,11 @@ N_SENSORS: int = len(SELECTED_SENSORS)  # 14
 COL_NAMES: List[str] = (
     ["engine_id", "cycle", "op1", "op2", "op3"] + [f"s{i}" for i in range(1, 22)]
 )
-CMAPSS_HORIZONS: List[int] = [1, 5, 10, 20, 50, 100, 150]
+# Dense unit-step horizons K=150 (paper Section 5.1). The canonical grid lives
+# in hepa.utils.config.get_horizons(); this module-level alias is retained for
+# backward compatibility but MUST stay dense. The previous sparse grid
+# ([1, 5, 10, 20, 50, 100, 150]) collapses h-AUROC toward chance.
+CMAPSS_HORIZONS: List[int] = get_horizons("FD001")  # list(range(1, 151))
 
 
 def _resolve_dir() -> Path:
@@ -85,36 +90,53 @@ def _engines_to_entities(engines: Dict[int, np.ndarray]) -> List[dict]:
     return entities
 
 
-def load_cmapss(subset: str = "FD001", val_frac: float = 0.15, seed: int = 42) -> dict:
-    """Load a C-MAPSS subset, splitting train engines into train/val.
+def load_cmapss(
+    subset: str = "FD001",
+    split_ratios: Tuple[float, float, float] = (0.6, 0.1, 0.3),
+    seed: int = 42,
+) -> dict:
+    """Load a C-MAPSS subset, id-splitting the run-to-failure TRAIN engines.
+
+    The event-prediction framing requires run-to-failure streams so that the
+    last cycle is a true failure (``labels[-1]=1``) and time-to-event equals
+    RUL. Only ``train_FDxxx.txt`` engines are run-to-failure; the official
+    ``test_FDxxx.txt`` engines are truncated *before* failure, so labelling
+    their last observed cycle as the event is incorrect and yields chance-level
+    h-AUROC. We therefore split the TRAIN engines by id into
+    train/val/test (no within-engine leakage), matching the protocol that
+    produced the paper's Table 1.
 
     Args:
         subset: one of FD001/FD002/FD003/FD004.
-        val_frac: fraction of train engines to hold out for validation.
-        seed: validation split RNG seed.
+        split_ratios: (train, val, test) fractions over engine ids.
+        seed: engine-id permutation seed.
 
     Returns:
         Bundle dict (see ``hepa.data`` module docstring).
     """
-    train_df, test_df, _rul = _load_raw(subset)
-    train_engines = _engines_to_dict(train_df)
-    test_engines = _engines_to_dict(test_df)
+    train_df, _test_df, _rul = _load_raw(subset)
+    engines = {
+        eid: seq
+        for eid, seq in _engines_to_dict(train_df).items()
+        if len(seq) >= 16  # need >= patch_size + a horizon to form an example
+    }
 
-    all_ids = sorted(train_engines.keys())
-    rng = np.random.default_rng(seed)
-    n_val = max(1, int(val_frac * len(all_ids)))
-    val_ids = set(rng.choice(all_ids, size=n_val, replace=False).tolist())
-    train_ids = [i for i in all_ids if i not in val_ids]
+    ids = sorted(engines.keys())
+    perm = np.random.default_rng(seed).permutation(ids)
+    n = len(perm)
+    n_tr = int(split_ratios[0] * n)
+    n_va = int(split_ratios[1] * n)
+    train_ids = sorted(perm[:n_tr].tolist())
+    val_ids = sorted(perm[n_tr : n_tr + n_va].tolist())
+    test_ids = sorted(perm[n_tr + n_va :].tolist())
 
-    pretrain_seqs = {i: train_engines[i] for i in train_ids}
+    pretrain_seqs = {i: engines[i] for i in train_ids}
     return {
         "pretrain_seqs": pretrain_seqs,
         "ft_train": _engines_to_entities(pretrain_seqs),
-        "ft_val": _engines_to_entities(
-            {i: train_engines[i] for i in sorted(val_ids)}
-        ),
-        "ft_test": _engines_to_entities(test_engines),
+        "ft_val": _engines_to_entities({i: engines[i] for i in val_ids}),
+        "ft_test": _engines_to_entities({i: engines[i] for i in test_ids}),
         "n_channels": N_SENSORS,
-        "horizons": CMAPSS_HORIZONS,
+        "horizons": get_horizons(subset),
         "name": subset,
     }

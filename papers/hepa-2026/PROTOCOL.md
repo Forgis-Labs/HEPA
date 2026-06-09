@@ -22,7 +22,7 @@ Frozen reference of the exact experimental setup reported in the paper.
 | Weight decay | 1 × 10⁻² |
 | Batch size | 64 |
 | Epochs | 100 (patience 10) |
-| SIGReg weight α | 0.1 |
+| Variance-covariance regularizer weight α | 0.1 |
 | Horizon sampling | LogUniform[1, K] |
 | Target encoder | Joint training (weight-shared, both receive gradients) |
 | Loss | (1-α) · L1(normalize(ĥ), normalize(h*)) + α · L_SIG |

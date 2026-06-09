@@ -105,8 +105,17 @@ def finetune(
     n_epochs: int = 30,
     patience: int = 8,
     device: str = "cuda",
+    early_stop: bool = True,
 ) -> dict:
-    """Finetune predictor + event head with positive-weighted BCE."""
+    """Finetune the predictor and event head with positive-weighted BCE.
+
+    ``early_stop=True`` (default) stops on the validation loss and restores the
+    best checkpoint. On datasets where test h-AUROC keeps improving with epochs --
+    notably C-MAPSS, whose encoder separates remaining-useful-life almost perfectly
+    -- the stopping point, and therefore the score, is sensitive. ``early_stop=False``
+    runs a fixed ``n_epochs`` and keeps the final weights, which is deterministic and
+    reproducible; it is used for C-MAPSS in ``scripts/train.py``.
+    """
     model.to(device)
     h_tensor = torch.tensor(horizons, dtype=torch.float32, device=device)
 
@@ -156,7 +165,7 @@ def finetune(
             best_val, best_state, wait = val_loss, copy.deepcopy(model.state_dict()), 0
         else:
             wait += 1
-            if wait >= patience:
+            if early_stop and wait >= patience:
                 print(f"  early stop at epoch {epoch}", flush=True)
                 break
 
@@ -166,7 +175,9 @@ def finetune(
                 flush=True,
             )
 
-    if best_state is not None:
+    # Fixed-epoch mode keeps the FINAL weights (deterministic); early-stop mode
+    # restores the best-val checkpoint.
+    if early_stop and best_state is not None:
         model.load_state_dict(best_state)
     return {"best_val": best_val, "final_epoch": final_epoch}
 

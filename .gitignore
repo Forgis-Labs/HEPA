@@ -31,3 +31,7 @@ outputs/
 results/
 runs/
 wandb/
+
+# local scratch / audit outputs
+_audit_workspace/
+outputs/

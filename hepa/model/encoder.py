@@ -137,11 +137,19 @@ class CausalEncoder(nn.Module):
         n_layers: int = 2,
         d_ff: int = 256,
         dropout: float = 0.1,
+        norm_mode: str = "revin",
     ):
         super().__init__()
         self.d_model = d_model
         self.patch_size = patch_size
         self.n_channels = n_channels
+        # 'revin' = per-window RevIN (default, anomaly datasets). 'none' = no
+        # in-model normalization; the data is expected to be globally z-scored
+        # by the loader. C-MAPSS uses 'none' because per-window RevIN removes
+        # the absolute degradation level that carries the RUL signal.
+        if norm_mode not in ("revin", "none"):
+            raise ValueError(f"norm_mode must be 'revin' or 'none', got {norm_mode!r}")
+        self.norm_mode = norm_mode
 
         self.revin = RevIN()
         self.patch_embed = PatchEmbedding(n_channels, patch_size, d_model)
@@ -165,7 +173,8 @@ class CausalEncoder(nn.Module):
             h_t: (B, d_model), the last valid token after causal attention.
         """
         B, T, _ = x.shape
-        x, _ = self.revin(x, mask)
+        if self.norm_mode != "none":
+            x, _ = self.revin(x, mask)
         tokens = self.patch_embed(x)  # (B, N, d)
         N = tokens.shape[1]
         tokens = tokens + sinusoidal_pe(
