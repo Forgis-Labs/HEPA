@@ -1,13 +1,13 @@
-"""JEPA pretraining loop with SIGReg.
+"""JEPA pretraining loop.
 
 Samples random (t, Delta_t) cuts per sequence, encodes context and target,
-and trains the predictor + encoder by minimizing the SIGReg objective
+and trains the predictor + encoder by minimizing an L1 alignment objective
 (L1 alignment + VICReg variance + covariance regularizer; see
-``hepa.training.losses.sigreg_loss``).
+``hepa.training.losses.vicreg_loss``).
 
 Target-encoder update modes (controlled by ``model.target_mode``):
   - ``joint_train`` (paper default): both encoders share weights and receive
-    gradients through the optimizer; SIGReg prevents collapse.
+    gradients through the optimizer; a variance-covariance regularizer prevents collapse.
   - ``periodic_sync``: hard-copy encoder -> target every
     ``model.sync_interval_steps`` optimizer steps (ablation variant).
 """
@@ -23,7 +23,7 @@ import torch
 from torch.utils.data import DataLoader, Dataset
 
 from hepa.model.hepa import HEPA
-from hepa.training.losses import sigreg_loss
+from hepa.training.losses import vicreg_loss
 
 
 # ---------------------------------------------------------------------------
@@ -119,7 +119,7 @@ def pretrain(
     alpha: float = 0.1,
     device: str = "cuda",
 ) -> dict:
-    """Pretrain HEPA with the SIGReg objective (Eq. 2).
+    """Pretrain HEPA with L1 alignment plus a variance-covariance regularizer.
 
     Loss: ``(1 - alpha) * L1(normalize(h_pred), normalize(h_target))
     + alpha * (L_var + L_cov)`` on the raw predictor output.
@@ -147,7 +147,7 @@ def pretrain(
             h_pred_raw, h_target_raw = model.pretrain_forward(
                 ctx, tgt, dt, ctx_m, tgt_m
             )
-            loss = sigreg_loss(h_pred_raw, h_target_raw, alpha=alpha)
+            loss = vicreg_loss(h_pred_raw, h_target_raw, alpha=alpha)
 
             optimizer.zero_grad()
             loss.backward()
@@ -206,5 +206,5 @@ def _eval_pretrain_loss(
         h_pred_raw, h_target_raw = model.pretrain_forward(
             ctx, tgt, dt, ctx_m, tgt_m
         )
-        losses.append(sigreg_loss(h_pred_raw, h_target_raw, alpha=alpha).item())
+        losses.append(vicreg_loss(h_pred_raw, h_target_raw, alpha=alpha).item())
     return float(np.mean(losses))

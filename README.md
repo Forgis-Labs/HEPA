@@ -30,14 +30,27 @@ Critical events in multivariate time series, from turbine failures to cardiac ar
 
 ```bash
 pip install -e .
+
+# 1. Get the data (prints per-dataset sources and the expected layout)
+export HEPA_DATA_DIR=/path/to/data
+python scripts/download_data.py FD001
+
+# 2. Pretrain + finetune + evaluate on C-MAPSS FD001
+python scripts/train.py --dataset FD001 --seed 42
 ```
 
-```bash
-# Pretrain + finetune + evaluate on C-MAPSS FD001
-python scripts/train.py --dataset FD001 --seed 0
-```
+PyTorch >= 2.0 required. CPU works for unit tests; a single GPU is recommended for full training (a few minutes per dataset on an A10G).
 
-PyTorch >= 2.0 required. CPU works for unit tests; a single GPU is recommended for full training (< 1 min per dataset on an A10G).
+Two settings are chosen per dataset (handled automatically): C-MAPSS uses a global
+z-score with no per-window RevIN and a fixed-epoch finetune; all other datasets use
+RevIN with early-stopped finetuning. Horizons are dense unit-step (K=150 for
+C-MAPSS/TEP, K=200 otherwise). See **[REPRODUCIBILITY.md](REPRODUCIBILITY.md)** for
+the full protocol and expected h-AUROC per dataset.
+
+> _Note:_ this repository's C-MAPSS h-AUROC values are higher than those in the arXiv
+> paper. There, the C-MAPSS finetune used validation-loss early stopping, whose stop
+> point is sensitive on these datasets; here it runs for a fixed epoch budget, which is
+> deterministic and reproducible. All other datasets are unchanged.
 
 ## Supported Datasets
 

@@ -1,9 +1,11 @@
 """Canonical hyperparameter protocol for HEPA.
 
 These defaults reproduce the paper's reported results (~2.16M parameters,
-100 pretrain epochs, 50 predictor-finetune epochs).
+50 pretrain epochs, 30 predictor-finetune epochs, seeds {42,123,456,789,1337}).
 
-Reference: Table 7, Section M of the paper (arXiv 2605.11130).
+Normalization and finetuning are per-dataset: C-MAPSS uses a global per-channel
+z-score with no per-window RevIN and a fixed-epoch finetune (see NORM_POLICY and
+``scripts/train.py``); all other datasets use RevIN with early-stopped finetuning.
 """
 
 from __future__ import annotations
@@ -25,14 +27,14 @@ PROTOCOL: Dict[str, object] = {
     "predictor_hidden": 256,
     # Target-encoder update (Section I.3): joint training is the paper default.
     # Both encoders share weights and are updated by the same optimizer;
-    # SIGReg (alpha=0.1) prevents collapse.  No momentum schedule or sync
+    # A variance-covariance regularizer (alpha=0.1) prevents collapse. No momentum
     # interval needed.
     "target_mode": "joint_train",
     "sync_interval_steps": 100,  # only used if target_mode == 'periodic_sync'
     # Context window
     "max_context": 512,
     # Pretraining (Table 7 – Pretraining block)
-    "pre_epochs": 100,
+    "pre_epochs": 50,
     "pre_batch": 64,
     "pre_lr": 3e-4,
     "pre_weight_decay": 0.01,
@@ -40,15 +42,15 @@ PROTOCOL: Dict[str, object] = {
     "n_cuts": 40,
     "delta_t_min": 1,
     "delta_t_max": 150,
-    "alpha": 0.1,  # SIGReg regulariser weight (Table 7)
+    "alpha": 0.1,  # variance-covariance regularizer weight
     # Finetuning (Table 7 – Finetuning block)
-    "ft_epochs": 50,
+    "ft_epochs": 30,
     "ft_batch": 64,
     "ft_lr": 1e-3,
     "ft_weight_decay": 0.01,
     "ft_patience": 10,
-    # Evaluation (Section M: seeds {0,1,2,3,4} for 5-seed runs)
-    "seeds": [0, 1, 2, 3, 4],
+    # Evaluation: 5-seed runs
+    "seeds": [42, 123, 456, 789, 1337],
 }
 
 
@@ -115,3 +117,25 @@ def get_horizons(dataset: str) -> List[int]:
 def get_context(dataset: str) -> int:
     """Return the per-dataset context window length (Table L)."""
     return CONTEXT_BY_DATASET.get(dataset, int(PROTOCOL["max_context"]))
+
+
+# ---------------------------------------------------------------------------
+# Per-dataset normalization policy (Appendix Preprocessing)
+#
+# C-MAPSS (FD001-FD004): 'none' — the loader applies a single global per-channel
+#   z-score (fit on the train split) and the encoder does NOT apply per-window
+#   RevIN. Remaining-useful-life is encoded in the *absolute* drift level of the
+#   sensors; per-window RevIN would z-score that level away and collapse h-AUROC
+#   to chance.
+# All other datasets: 'revin' — per-window RevIN (per-instance normalization),
+#   which suits anomaly/streaming datasets and is reversible per context window.
+# ---------------------------------------------------------------------------
+
+NORM_POLICY: Dict[str, str] = {
+    "FD001": "none", "FD002": "none", "FD003": "none", "FD004": "none",
+}
+
+
+def get_norm_mode(dataset: str) -> str:
+    """Return the normalization mode for a dataset ('none' for C-MAPSS, else 'revin')."""
+    return NORM_POLICY.get(dataset, "revin")

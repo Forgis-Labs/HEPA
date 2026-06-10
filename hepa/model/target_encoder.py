@@ -3,7 +3,7 @@
 Encodes the future interval x(t : t+Delta_t] into a single target embedding
 h*. Under the paper's default ``joint_train`` mode, the target encoder
 shares weights with the context encoder and both receive gradients through
-the optimizer; SIGReg (alpha=0.1) prevents collapse, removing the need for
+the optimizer; a variance-covariance regularizer (alpha=0.1) prevents collapse, removing the need for
 an EMA momentum schedule (Section I.3).
 
 Alternative modes (``periodic_sync``, ``frozen_target``) are available as
@@ -38,11 +38,15 @@ class TargetEncoder(nn.Module):
         n_layers: int = 2,
         d_ff: int = 256,
         dropout: float = 0.1,
+        norm_mode: str = "revin",
     ):
         super().__init__()
         self.d_model = d_model
         self.patch_size = patch_size
         self.n_channels = n_channels
+        if norm_mode not in ("revin", "none"):
+            raise ValueError(f"norm_mode must be 'revin' or 'none', got {norm_mode!r}")
+        self.norm_mode = norm_mode
 
         self.revin = RevIN()
         self.patch_embed = PatchEmbedding(n_channels, patch_size, d_model)
@@ -71,7 +75,8 @@ class TargetEncoder(nn.Module):
             h_target: (B, d_model).
         """
         B = x.shape[0]
-        x, _ = self.revin(x, mask)
+        if self.norm_mode != "none":
+            x, _ = self.revin(x, mask)
         tokens = self.patch_embed(x)
         N = tokens.shape[1]
         tokens = tokens + sinusoidal_pe(

@@ -1,7 +1,7 @@
 """HEPA: full model wrapper.
 
 Pretraining: encoder + target_encoder + predictor (self-supervised JEPA loss
-with SIGReg variance + covariance regulariser, periodic hard-sync of the
+with a variance + covariance regulariser, periodic hard-sync of the
 target encoder).
 Finetuning: freeze encoder; train predictor + event_head (supervised BCE).
 
@@ -37,7 +37,7 @@ class HEPA(nn.Module):
 
     Target-encoder update modes (Section I.3):
         ``joint_train`` (paper default): both encoders share weights and
-            are updated by the same optimizer; SIGReg (alpha=0.1) prevents
+            are updated by the same optimizer; a variance-covariance regularizer (alpha=0.1) prevents
             collapse. No momentum schedule or sync interval needed.
         ``periodic_sync``: every ``sync_interval_steps`` optimizer steps,
             hard-copy matching encoder weights into the target encoder.
@@ -60,6 +60,7 @@ class HEPA(nn.Module):
         predictor_hidden: int = 256,
         target_mode: str = "joint_train",
         sync_interval_steps: int = 100,
+        norm_mode: str = "revin",
     ):
         super().__init__()
         if target_mode not in self.VALID_TARGET_MODES:
@@ -69,12 +70,15 @@ class HEPA(nn.Module):
         self.d_model = d_model
         self.target_mode = target_mode
         self.sync_interval_steps = int(sync_interval_steps)
+        self.norm_mode = norm_mode
 
         self.encoder = CausalEncoder(
-            n_channels, patch_size, d_model, n_heads, n_layers, d_ff, dropout
+            n_channels, patch_size, d_model, n_heads, n_layers, d_ff, dropout,
+            norm_mode=norm_mode,
         )
         self.target_encoder = TargetEncoder(
-            n_channels, patch_size, d_model, n_heads, n_layers, d_ff, dropout
+            n_channels, patch_size, d_model, n_heads, n_layers, d_ff, dropout,
+            norm_mode=norm_mode,
         )
         self.predictor = HorizonPredictor(d_model, predictor_hidden)
         self.event_head = EventHead(d_model)
@@ -123,7 +127,7 @@ class HEPA(nn.Module):
         """Self-supervised forward pass.
 
         Returns the **raw** (unnormalized) predictor output and target
-        embedding. The SIGReg loss requires raw values to compute the
+        embedding. The regularizer requires raw values to compute the
         VICReg variance + covariance terms; it normalizes internally for
         the L1 alignment term. Under ``target_mode == 'joint_train'`` the
         target encoder receives gradients; otherwise it is run inside

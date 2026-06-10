@@ -9,7 +9,7 @@ import torch.nn.functional as F
 
 
 # ---------------------------------------------------------------------------
-# Self-supervised pretraining loss (SIGReg)
+# Self-supervised pretraining loss (L1 alignment + variance-covariance regularizer)
 # ---------------------------------------------------------------------------
 
 
@@ -33,29 +33,27 @@ def vicreg_var_cov(h: torch.Tensor, eps: float = 1e-4) -> Tuple[torch.Tensor, to
     return l_var, l_cov, std.mean().detach()
 
 
-def sigreg_loss(
+def vicreg_loss(
     h_pred: torch.Tensor,
     h_target: torch.Tensor,
     alpha: float = 0.1,
 ) -> torch.Tensor:
-    """SIGReg pretraining loss (canonical HEPA objective, Eq. 2).
+    """Pretraining loss: L1 alignment plus a variance-covariance regularizer.
 
         L = (1 - alpha) * ||normalize(h_pred) - normalize(h_target)||_1
-            + alpha * L_SIG
+            + alpha * (L_var + L_cov)
 
-    where ``L_SIG = L_var + L_cov`` (VICReg-style regularizers) on the
-    **raw** predictor output ``h_pred``. The L1 alignment term uses
-    L2-normalised representations; the SIGReg term operates on the raw
-    vectors to encourage isotropic Gaussian structure and prevent collapse.
+    The L1 alignment term uses L2-normalised representations; the
+    variance-covariance term (computed on the raw predictor output) keeps
+    each feature's variance up and decorrelates features, preventing collapse.
 
-    Under the paper's default ``joint_train`` target mode, both encoders
-    receive gradients through the optimizer; no stop-gradient is applied
-    to ``h_target`` in the alignment term.
+    Under ``joint_train`` both encoders receive gradients through the
+    optimizer; no stop-gradient is applied to ``h_target`` in the alignment term.
 
     Args:
         h_pred: (B, d) raw predictor output.
         h_target: (B, d) raw target encoder output.
-        alpha: weight on the SIGReg regulariser (paper Table 7: 0.1).
+        alpha: weight on the variance-covariance regularizer.
 
     Returns:
         Scalar loss.
@@ -64,8 +62,8 @@ def sigreg_loss(
     targ_n = F.normalize(h_target, dim=-1)
     l1 = F.l1_loss(pred_n, targ_n)
     l_var, l_cov, _ = vicreg_var_cov(h_pred)
-    l_sig = l_var + l_cov
-    return (1 - alpha) * l1 + alpha * l_sig
+    l_reg = l_var + l_cov
+    return (1 - alpha) * l1 + alpha * l_reg
 
 
 # ---------------------------------------------------------------------------

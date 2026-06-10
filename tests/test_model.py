@@ -18,7 +18,7 @@ def test_hepa_pretrain_forward_shapes():
     h_pred, h_target = model.pretrain_forward(ctx, tgt, dt)
     assert h_pred.shape == (B, model.d_model)
     assert h_target.shape == (B, model.d_model)
-    # raw unnormalized outputs (SIGReg loss handles normalization)
+    # raw unnormalized outputs (the loss handles normalization)
     assert torch.isfinite(h_pred).all() and torch.isfinite(h_target).all()
 
 
@@ -31,7 +31,7 @@ def test_hepa_target_mode_is_joint_train_by_default():
 
 def test_hepa_maybe_sync_target_copies_weights():
     """After sync_interval_steps, encoder weights are copied to target."""
-    model = HEPA(n_channels=4, sync_interval_steps=10)
+    model = HEPA(n_channels=4, target_mode="periodic_sync", sync_interval_steps=10)
     with torch.no_grad():
         for p in model.encoder.parameters():
             p.add_(0.5 * torch.randn_like(p))
@@ -59,12 +59,12 @@ def test_hepa_joint_train_mode_target_has_grads():
     assert torch.allclose(tgt_w_before, tgt_w_after)
 
 
-def test_sigreg_loss_runs_and_is_finite():
-    from hepa.training.losses import sigreg_loss
+def test_vicreg_loss_runs_and_is_finite():
+    from hepa.training.losses import vicreg_loss
     torch.manual_seed(0)
     h_pred = torch.randn(8, 64, requires_grad=True)
     h_target = torch.randn(8, 64)
-    loss = sigreg_loss(h_pred, h_target, alpha=0.04)
+    loss = vicreg_loss(h_pred, h_target, alpha=0.04)
     assert torch.isfinite(loss)
     loss.backward()
     assert h_pred.grad is not None and torch.isfinite(h_pred.grad).all()

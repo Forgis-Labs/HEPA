@@ -3,6 +3,10 @@
 Daily VIX + S&P 500 OHLCV (6 channels). Event labels: VIX spike days
 (VIX_close > rolling 90th percentile). File: ``HEPA_DATA_DIR/VIX/vix.csv``
 with columns Date, VIX_Open, VIX_High, VIX_Low, VIX_Close, SP500_Close.
+
+The benchmark uses engineered ETF-return channels with VIX as the target and a
+level-crossing event (VIX crossing 25 from below); this loader is being aligned
+to that protocol.
 """
 
 from __future__ import annotations

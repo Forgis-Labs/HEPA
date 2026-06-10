@@ -45,3 +45,27 @@ def zscore(train: np.ndarray, *others: np.ndarray) -> List[np.ndarray]:
     mu = train.mean(axis=0, keepdims=True)
     std = train.std(axis=0, keepdims=True) + 1e-6
     return [((arr - mu) / std).astype(np.float32) for arr in (train,) + others]
+
+
+def global_zscore_bundle(bundle: Dict) -> Dict:
+    """Global per-channel z-score for a dataset bundle (norm_mode='none' path).
+
+    Fits a single per-channel mean/std on the concatenated pretrain sequences
+    (the train split) and applies it to ``pretrain_seqs`` and every finetune
+    entity's ``test`` array. Used for C-MAPSS, where per-window RevIN would
+    destroy the absolute degradation level (see ``hepa.utils.config.NORM_POLICY``).
+    """
+    cat = np.concatenate(list(bundle["pretrain_seqs"].values()), axis=0)
+    mu = cat.mean(axis=0, keepdims=True)
+    std = cat.std(axis=0, keepdims=True) + 1e-6
+    out = dict(bundle)
+    out["pretrain_seqs"] = {
+        k: ((v - mu) / std).astype(np.float32) for k, v in bundle["pretrain_seqs"].items()
+    }
+    for split in ("ft_train", "ft_val", "ft_test"):
+        if split in bundle:
+            out[split] = [
+                {**e, "test": ((e["test"] - mu) / std).astype(np.float32)}
+                for e in bundle[split]
+            ]
+    return out
