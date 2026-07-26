@@ -1,0 +1,37 @@
+# Python
+__pycache__/
+*.py[cod]
+*.egg-info/
+*.egg
+.pytest_cache/
+.mypy_cache/
+.ruff_cache/
+build/
+dist/
+
+# Virtual envs
+.venv/
+venv/
+env/
+
+# Editor/OS/Tools
+.idea/
+.vscode/
+.DS_Store
+
+# Data + checkpoints (never commit) — root-level only, do NOT shadow hepa/data/
+/data/
+/checkpoints/
+*.pt
+*.npz
+*.h5
+
+# Outputs
+outputs/
+results/
+runs/
+wandb/
+
+# local scratch / audit outputs
+_audit_workspace/
+outputs/

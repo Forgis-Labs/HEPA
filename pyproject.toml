@@ -1,0 +1,37 @@
+[build-system]
+requires = ["setuptools>=61", "wheel"]
+build-backend = "setuptools.build_meta"
+
+[project]
+name = "hepa"
+version = "1.0.0"
+description = "HEPA: Horizon-conditioned Event Predictive Architecture for self-supervised event forecasting in multivariate time series."
+readme = "README.md"
+license = { text = "CC-BY-NC-SA-4.0" }
+requires-python = ">=3.9"
+authors = [
+    { name = "Anonymous authors" },
+]
+classifiers = [
+    "License :: Other/Proprietary License",
+    "Programming Language :: Python :: 3",
+    "Operating System :: OS Independent",
+    "Intended Audience :: Science/Research",
+    "Topic :: Scientific/Engineering :: Artificial Intelligence",
+]
+dependencies = [
+    "torch>=2.0",
+    "numpy",
+    "scikit-learn",
+    "pandas",
+]
+
+[project.urls]
+Homepage = "https://anonymous.4open.science/r/HEPA-8D6B/"
+
+[project.optional-dependencies]
+test = ["pytest"]
+
+[tool.setuptools.packages.find]
+include = ["hepa*"]
+exclude = ["tests*", "scripts*"]
