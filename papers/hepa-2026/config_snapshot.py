@@ -3,7 +3,7 @@
 These defaults reproduce the paper's reported results (~2.16M parameters,
 100 pretrain epochs, 50 predictor-finetune epochs).
 
-Reference: Table 7, Section M of the paper (arXiv 2605.11130).
+Reference: Table 7, Section M of the paper.
 """
 
 from __future__ import annotations

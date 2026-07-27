@@ -67,7 +67,7 @@ PSM, MBA, Weather, and Beijing-AQ run on the same pipeline.
 
 ## Note on the C-MAPSS numbers
 
-The C-MAPSS h-AUROC values above are higher than the first arXiv version, which
+The C-MAPSS h-AUROC values above are higher than the first paper version, which
 reported an early-stopped operating point. Fixing the finetune epoch budget makes
 the result deterministic and reproducible; the values here are the ones a clone of
 this repo will produce.

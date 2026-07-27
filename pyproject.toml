@@ -10,12 +10,7 @@ readme = "README.md"
 license = { text = "CC-BY-NC-SA-4.0" }
 requires-python = ">=3.9"
 authors = [
-    { name = "Jonas Petersen", email = "jep79@cantab.ac.uk" },
-    { name = "Gian-Alessandro Lombardi" },
-    { name = "Riccardo Maggioni" },
-    { name = "Camilla Mazzoleni" },
-    { name = "Federico Martelli" },
-    { name = "Philipp Petersen" },
+    { name = "Anonymous authors" },
 ]
 classifiers = [
     "License :: Other/Proprietary License",
@@ -32,8 +27,7 @@ dependencies = [
 ]
 
 [project.urls]
-Homepage = "https://github.com/Forgis-Labs/HEPA"
-Paper = "https://arxiv.org/abs/2605.11130"
+Homepage = "https://anonymous.4open.science/r/HEPA-8D6B/"
 
 [project.optional-dependencies]
 test = ["pytest"]

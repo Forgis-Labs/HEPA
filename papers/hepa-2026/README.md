@@ -1,12 +1,10 @@
-# HEPA Paper Snapshot (arXiv 2605.11130)
+# HEPA Paper Snapshot
 
 **HEPA: A Self-Supervised Horizon-Conditioned Event Predictive Architecture for Time Series**
 
-Jonas Petersen, Gian-Alessandro Lombardi, Riccardo Maggioni, Camilla Mazzoleni, Federico Martelli, Philipp Petersen
+Anonymous authors (under double-blind review)
 
-- **arXiv**: [2605.11130](https://arxiv.org/abs/2605.11130)
-- **Venue**: Spotlight at FMSD @ ICML 2026
-- **Code (public snapshot)**: [github.com/Forgis-Labs/HEPA](https://github.com/Forgis-Labs/HEPA)
+- **Code (anonymized snapshot)**: [anonymous.4open.science/r/HEPA-8D6B](https://anonymous.4open.science/r/HEPA-8D6B/)
 
 ## Purpose
 

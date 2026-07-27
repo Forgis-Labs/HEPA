@@ -1,15 +1,10 @@
 # HEPA: A Self-Supervised Horizon-Conditioned Event Predictive Architecture for Time Series
 
-[![Website](https://img.shields.io/badge/Website-forgis.com-orange)](https://www.forgis.com)
-[![arXiv](https://img.shields.io/badge/arXiv-2605.11130-b31b1b)](https://arxiv.org/abs/2605.11130)
-[![Spotlight](https://img.shields.io/badge/FMSD_@_ICML_2026-Spotlight-brightgreen)](https://arxiv.org/abs/2605.11130)
 [![License: CC BY-NC-SA 4.0](https://img.shields.io/badge/License-CC_BY--NC--SA_4.0-lightgrey.svg)](https://creativecommons.org/licenses/by-nc-sa/4.0/)
 
-**Team:** Jonas Petersen, Gian-Alessandro Lombardi, Riccardo Maggioni, Camilla Mazzoleni, Federico Martelli, Philipp Petersen
+**Team:** Anonymous authors (under double-blind review)
 
 Critical events in multivariate time series, from turbine failures to cardiac arrhythmias, demand accurate prediction, yet labeled data is scarce because such events are rare and costly to annotate. We introduce HEPA (Horizon-conditioned Event Predictive Architecture), built on two key principles. First, a causal Transformer encoder is pretrained via a Joint-Embedding Predictive Architecture (JEPA): a horizon-conditioned predictor learns to forecast future representations rather than future values, forcing the encoder to capture predictable temporal dynamics from unlabeled data alone. Second, we freeze the encoder and finetune only the predictor toward the target event, producing a monotonic survival cumulative distribution function (CDF) over horizons. With fixed architecture and optimiser hyperparameters across all benchmarks, HEPA handles water contamination, cyberattack detection, volatility regimes, and eight further event types across 11 domains, exceeding leading time-series architectures including PatchTST, iTransformer, MAE, and Chronos-2 on at least 10 of 14 benchmarks, with an order of magnitude fewer tuned parameters and, on lifecycle datasets, an order of magnitude less labeled data.
-
-**Spotlight at FMSD @ ICML 2026.**
 
 <p align="center">
   <img src="assets/hepa_architecture.png" width="100%">
@@ -47,7 +42,7 @@ RevIN with early-stopped finetuning. Horizons are dense unit-step (K=150 for
 C-MAPSS/TEP, K=200 otherwise). See **[REPRODUCIBILITY.md](REPRODUCIBILITY.md)** for
 the full protocol and expected h-AUROC per dataset.
 
-> _Note:_ this repository's C-MAPSS h-AUROC values are higher than those in the arXiv
+> _Note:_ this repository's C-MAPSS h-AUROC values are higher than those in the
 > paper. There, the C-MAPSS finetune used validation-loss early stopping, whose stop
 > point is sensitive on these datasets; here it runs for a fixed epoch budget, which is
 > deterministic and reproducible. All other datasets are unchanged.
@@ -71,17 +66,15 @@ the full protocol and expected h-AUROC per dataset.
 ## Citation
 
 ```bibtex
-@article{petersen2026hepa,
+@article{hepa2026,
   title   = {HEPA: A Self-Supervised Horizon-Conditioned Event Predictive
              Architecture for Time Series},
-  author  = {Petersen, Jonas and Lombardi, Gian-Alessandro and Maggioni,
-             Riccardo and Mazzoleni, Camilla and Martelli, Federico and
-             Petersen, Philipp},
-  journal = {arXiv preprint arXiv:2605.11130},
+  author  = {Anonymous authors},
+  note    = {Under double-blind review; author list and venue redacted},
   year    = {2026}
 }
 ```
 
 ## License
 
-Copyright (c) 2026, Forgis. Licensed under [CC BY-NC-SA 4.0](LICENSE).
+Copyright (c) 2026, Anonymous authors. Licensed under [CC BY-NC-SA 4.0](LICENSE).

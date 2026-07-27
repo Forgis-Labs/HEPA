@@ -1,4 +1,4 @@
-# HEPA Experiment Protocol (arXiv 2605.11130)
+# HEPA Experiment Protocol
 
 Frozen reference of the exact experimental setup reported in the paper.
 
