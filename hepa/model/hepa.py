@@ -37,7 +37,7 @@ class HEPA(nn.Module):
 
     Target-encoder update modes (Section I.3):
         ``joint_train`` (paper default): both encoders share weights and
-            are updated by the same optimizer; a variance-covariance regularizer (alpha=0.1) prevents
+            are updated by the same optimizer; a variance-covariance regularizer (alpha=0.04) prevents
             collapse. No momentum schedule or sync interval needed.
         ``periodic_sync``: every ``sync_interval_steps`` optimizer steps,
             hard-copy matching encoder weights into the target encoder.

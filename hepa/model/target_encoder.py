@@ -3,7 +3,7 @@
 Encodes the future interval x(t : t+Delta_t] into a single target embedding
 h*. Under the paper's default ``joint_train`` mode, the target encoder
 shares weights with the context encoder and both receive gradients through
-the optimizer; a variance-covariance regularizer (alpha=0.1) prevents collapse, removing the need for
+the optimizer; a variance-covariance regularizer (alpha=0.04) prevents collapse, removing the need for
 an EMA momentum schedule (Section I.3).
 
 Alternative modes (``periodic_sync``, ``frozen_target``) are available as

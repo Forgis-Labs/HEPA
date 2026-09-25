@@ -116,7 +116,7 @@ def pretrain(
     n_epochs: int = 50,
     patience: int = 8,
     grad_clip: float = 1.0,
-    alpha: float = 0.1,
+    alpha: float = 0.04,
     device: str = "cuda",
 ) -> dict:
     """Pretrain HEPA with L1 alignment plus a variance-covariance regularizer.
