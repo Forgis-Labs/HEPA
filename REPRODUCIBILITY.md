@@ -102,6 +102,12 @@ direct experiment rather than argument:
 | the regulariser weight | alpha 0.1 vs 0.04, 5 seeds, C-MAPSS-1 | 0.921 +- 0.009 vs 0.902 +- 0.011 - moves ~0.02 of a ~0.11 gap |
 | the target-encoder gradient path | joint_train vs frozen_target, 5 seeds, C-MAPSS-1 | rejected: 0.902 vs 0.915, the wrong direction |
 
+**The gap is C-MAPSS-specific, not a global offset.** GECCO reproduces at the
+paper's alpha: 0.882 +- 0.059 here against 0.88 in the paper. So whatever differs
+is something particular to C-MAPSS -- which uses `norm_mode='none'` with an
+external per-subset min-max, cycle-as-patch tokenisation, and a fixed-epoch
+finetune, where every other dataset uses RevIN and early stopping.
+
 The leading remaining candidate is the **event/label construction and test
 windowing**, not the model. This repo's C-MAPSS-1 event surface has a positive
 rate of 1.3% at `dt=1` rising to 98% at `dt=150`; the paper describes 0.5% rising
