@@ -36,7 +36,7 @@ def vicreg_var_cov(h: torch.Tensor, eps: float = 1e-4) -> Tuple[torch.Tensor, to
 def vicreg_loss(
     h_pred: torch.Tensor,
     h_target: torch.Tensor,
-    alpha: float = 0.1,
+    alpha: float = 0.04,
 ) -> torch.Tensor:
     """Pretraining loss: L1 alignment plus a variance-covariance regularizer.
 

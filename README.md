@@ -43,13 +43,14 @@ C-MAPSS/TEP, K=200 otherwise). See **[REPRODUCIBILITY.md](REPRODUCIBILITY.md)** 
 the full protocol and expected h-AUROC per dataset.
 
 > _Note:_ this repository's C-MAPSS h-AUROC values are higher than those in the
-> paper (~0.90-0.92 against 0.81 on C-MAPSS-1). The finetune stopping rule was
-> previously offered as the explanation; it is not — fixed-epoch versus early-stop
-> is worth about -0.007 on these datasets. Two further differences are documented
-> and measured in [REPRODUCIBILITY.md](REPRODUCIBILITY.md) (the regulariser weight
-> `alpha`, and whether the target encoder is detached), and neither closes the gap
-> either. Read the numbers here as what this code produces, not as a reproduction
-> of the paper's table.
+> paper (~0.90 against 0.81 on C-MAPSS-1 at the current default). The finetune
+> stopping rule was previously offered as the explanation; it is not - fixed-epoch
+> versus early-stop is worth about -0.007 on these datasets. The regulariser weight
+> `alpha` now matches the paper's runs at 0.04, which accounts for about 0.02 of the
+> gap; the remaining documented difference is whether the target encoder is detached,
+> and it does not close the rest. See [REPRODUCIBILITY.md](REPRODUCIBILITY.md) for the
+> measurements. Read the numbers here as what this code produces, not as a
+> reproduction of the paper's table.
 
 ## Supported Datasets
 

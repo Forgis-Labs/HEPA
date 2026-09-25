@@ -24,8 +24,8 @@ python scripts/download_data.py FD001      # instructions for one dataset
 
 Shared across all datasets: causal Transformer encoder (d=256, L=2, 4 heads,
 patch 16, ~2.16M params), AdamW (lr 3e-4 pretrain / 1e-3 finetune, wd 1e-2,
-batch 64), variance-covariance regulariser weight alpha=0.1 (see the divergence
-table below - the paper's runs used 0.04), pretrain 50 epochs, finetune 30 epochs,
+batch 64), variance-covariance regulariser weight alpha=0.04 (the value the
+paper's runs used), pretrain 50 epochs, finetune 30 epochs,
 5 seeds {42, 123, 456, 789, 1337}. Downstream is predictor-finetune: freeze the encoder,
 train the predictor + event head with positive-weighted BCE on the discrete-hazard
 survival CDF.
@@ -77,14 +77,17 @@ not reproduce those numbers exactly**, and the differences are specific:
 | | this repo | the run behind the paper's table |
 |---|---|---|
 | collapse term | variance-covariance on the predictor output | same |
-| regulariser weight `alpha` | **0.1** | **0.04** |
+| regulariser weight `alpha` | **0.04** (aligned) | **0.04** |
 | target encoder | jointly trained (receives gradients) | **detached** - initialised from the context encoder and held there |
 | horizons K | 150 C-MAPSS/TEP, 200 otherwise | same |
 | normalization | global z-score for C-MAPSS, RevIN otherwise | same |
 | finetune stopping | fixed epochs for C-MAPSS, early stopping otherwise | same |
 | seeds | 5 | 5 |
 
-The target-encoder row is the larger divergence of the two. In this repo,
+The target-encoder row is now the only divergence. `alpha` was 0.1 here until
+the paper's configuration of record was established; it is 0.04 as of this commit,
+so the numbers below that were measured at 0.1 no longer describe the default.
+In this repo,
 `target_mode='joint_train'` lets the target encoder receive gradients. In the run
 behind the paper the alignment term was computed against a **detached** target,
 so the target encoder stayed at its initialisation for the whole of pretraining.
@@ -99,7 +102,7 @@ direct experiment rather than argument:
 | hypothesis | test | result |
 |---|---|---|
 | the finetune stopping rule | fixed-epoch vs early-stop, 3 seeds, C-MAPSS | rejected: mean difference -0.007 |
-| the regulariser weight | alpha 0.1 vs 0.04, 5 seeds, C-MAPSS-1 | 0.921 +- 0.009 vs 0.902 +- 0.011 - moves ~0.02 of a ~0.11 gap |
+| the regulariser weight | alpha 0.1 vs 0.04, 5 seeds, C-MAPSS-1 | 0.921 +- 0.009 vs 0.902 +- 0.011 - moves ~0.02 of a ~0.11 gap. 0.04 is now the default, so expect ~0.902 |
 | the target-encoder gradient path | joint_train vs frozen_target, 5 seeds, C-MAPSS-1 | rejected: 0.902 vs 0.915, the wrong direction |
 
 **The gap is C-MAPSS-specific, not a global offset.** GECCO reproduces at the

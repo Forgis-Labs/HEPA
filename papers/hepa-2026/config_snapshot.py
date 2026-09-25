@@ -25,7 +25,7 @@ PROTOCOL: Dict[str, object] = {
     "predictor_hidden": 256,
     # Target-encoder update (Section I.3): joint training is the paper default.
     # Both encoders share weights and are updated by the same optimizer;
-    # A variance-covariance regularizer (alpha=0.1) prevents collapse. No momentum
+    # A variance-covariance regularizer (alpha=0.04) prevents collapse. No momentum
     # interval needed.
     "target_mode": "joint_train",
     "sync_interval_steps": 100,  # only used if target_mode == 'periodic_sync'
@@ -40,7 +40,7 @@ PROTOCOL: Dict[str, object] = {
     "n_cuts": 40,
     "delta_t_min": 1,
     "delta_t_max": 150,
-    "alpha": 0.1,  # variance-covariance regularizer weight
+    "alpha": 0.04,  # variance-covariance regularizer weight
     # Finetuning (Table 7 – Finetuning block)
     "ft_epochs": 50,
     "ft_batch": 64,
