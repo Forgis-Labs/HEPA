@@ -30,8 +30,10 @@ env/
 outputs/
 results/
 runs/
+logs/
 wandb/
 
 # local scratch / audit outputs
 _audit_workspace/
 outputs/
+.remember/

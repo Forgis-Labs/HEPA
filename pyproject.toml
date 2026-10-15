@@ -41,3 +41,9 @@ test = ["pytest"]
 [tool.setuptools.packages.find]
 include = ["hepa*"]
 exclude = ["tests*", "scripts*"]
+
+[dependency-groups]
+eda = [
+    "ipykernel>=6.31.0",
+    "matplotlib>=3.9.4",
+]
