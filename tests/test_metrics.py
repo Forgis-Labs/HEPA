@@ -58,3 +58,15 @@ def test_random_surface_auroc_near_chance():
     p = rng.random(size=(n, k))
     out = evaluate_probability_surface(p, y)
     assert 0.4 < out["auroc"] < 0.6
+
+
+def test_elapsed_time_reference_is_perfect_on_equal_length_entities():
+    from hepa.evaluation import elapsed_time_h_auroc
+
+    horizons = list(range(1, 21))
+    t_index, y = [], []
+    for T in (60, 60, 60):  # EventDataset's convention: t = 16..T-2, tte = T-1-t
+        t = np.arange(16, T - 1)
+        t_index.append(t)
+        y.append(((T - 1 - t)[:, None] <= np.asarray(horizons)[None, :]).astype(np.int32))
+    assert elapsed_time_h_auroc(np.concatenate(t_index), np.concatenate(y), horizons) == 1.0

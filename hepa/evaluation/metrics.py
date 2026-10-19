@@ -141,6 +141,27 @@ def h_auroc(
 
 
 # ---------------------------------------------------------------------------
+# Elapsed-time reference
+# ---------------------------------------------------------------------------
+
+
+def elapsed_time_h_auroc(
+    t_index: np.ndarray,
+    y_surface: np.ndarray,
+    horizon_labels: Optional[List[int]] = None,
+) -> float:
+    """h-AUROC of ranking every window by its observation time, with no model.
+
+    On run-to-failure data elapsed time already ranks time-to-event (perfectly
+    on equal-length entities), and the value moves with which observation
+    times are scored, so h-AUROC is read next to it.
+    """
+    y = np.asarray(y_surface)
+    score = np.repeat(np.asarray(t_index, dtype=np.float64)[:, None], y.shape[1], axis=1)
+    return h_auroc(score, y, horizon_labels)
+
+
+# ---------------------------------------------------------------------------
 # Calibration
 # ---------------------------------------------------------------------------
 

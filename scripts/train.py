@@ -20,6 +20,7 @@ from torch.utils.data import ConcatDataset, DataLoader
 from hepa.data import load_dataset
 from hepa.data._common import global_zscore_bundle
 from hepa.evaluation import (
+    elapsed_time_h_auroc,
     evaluate_probability_surface,
     h_auroc,
     monotonicity_violation_rate,
@@ -39,10 +40,11 @@ def _build_event_loader(
     max_future: int,
     stride: int,
     shuffle: bool,
+    min_context: int,
 ):
     datasets = []
     for e in entities:
-        if len(e["test"]) <= 128 + 1:
+        if len(e["test"]) <= min_context + 1:
             continue
         ds = EventDataset(
             e["test"],
@@ -50,6 +52,8 @@ def _build_event_loader(
             max_context=max_context,
             stride=stride,
             max_future=max_future,
+            min_context=min_context,
+            entity_id=e.get("entity_id", ""),
         )
         if len(ds) > 0:
             datasets.append(ds)
@@ -71,6 +75,13 @@ def main() -> None:
     parser.add_argument("--pre-epochs", type=int, default=PROTOCOL["pre_epochs"])
     parser.add_argument("--ft-epochs", type=int, default=PROTOCOL["ft_epochs"])
     parser.add_argument("--out", type=str, default="outputs/")
+    parser.add_argument(
+        "--min-context",
+        type=int,
+        default=PROTOCOL["min_context"],
+        help="first observation time of the event surface: steps observed before "
+        "the first scored window",
+    )
     args = parser.parse_args()
 
     out_dir = Path(args.out)
@@ -89,7 +100,11 @@ def main() -> None:
     horizons = bundle["horizons"]
     n_channels = bundle["n_channels"]
     max_context = get_context(args.dataset)
-    print(f"  n_channels={n_channels}  K={len(horizons)}  context={max_context}  norm={norm_mode}")
+    min_context = int(args.min_context)
+    print(
+        f"  n_channels={n_channels}  K={len(horizons)}  context={max_context}  "
+        f"min_context={min_context}  norm={norm_mode}"
+    )
 
     # ---- pretrain dataloaders ---------------------------------------------
     delta_t_max = max(horizons)
@@ -135,6 +150,7 @@ def main() -> None:
         delta_t_max,
         stride=4,
         shuffle=True,
+        min_context=min_context,
     )
     ft_val = _build_event_loader(
         bundle["ft_val"],
@@ -143,6 +159,7 @@ def main() -> None:
         delta_t_max,
         stride=4,
         shuffle=False,
+        min_context=min_context,
     )
     ft_test = _build_event_loader(
         bundle["ft_test"],
@@ -151,6 +168,7 @@ def main() -> None:
         delta_t_max,
         stride=1,
         shuffle=False,
+        min_context=min_context,
     )
 
     # ---- model -------------------------------------------------------------
@@ -210,11 +228,13 @@ def main() -> None:
     per_h = per_horizon_auroc(surf["p_surface"], surf["y_surface"], horizons)
     h_aur = h_auroc(surf["p_surface"], surf["y_surface"], horizons)
     mono = monotonicity_violation_rate(surf["p_surface"])
+    age_h = elapsed_time_h_auroc(surf["t_index"], surf["y_surface"], horizons)
 
     print(
         f"  pooled AUPRC={pooled['auprc']:.4f}  AUROC={pooled['auroc']:.4f}  "
         f"h-AUROC={h_aur:.4f}  monotonicity_violations={mono:.4f}"
     )
+    print(f"  elapsed-time reference h-AUROC={age_h:.4f}  (min_context={min_context})")
     for k, h in enumerate(horizons):
         print(
             f"    h={h:>4d}  AUROC={per_h['auroc_per_k'][k]:.3f}  "
@@ -229,6 +249,7 @@ def main() -> None:
         surf["y_surface"],
         horizons,
         surf["t_index"],
+        entity_id=surf["entity_id"],
     )
     with (out_dir / f"{tag}_metrics.json").open("w") as fh:
         json.dump(
@@ -238,6 +259,8 @@ def main() -> None:
                 "n_params": n_params,
                 "pooled": pooled,
                 "h_auroc": h_aur,
+                "elapsed_time_h_auroc": age_h,
+                "min_context": min_context,
                 "per_horizon": per_h,
                 "monotonicity_violation_rate": mono,
             },

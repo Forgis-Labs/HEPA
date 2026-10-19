@@ -34,8 +34,10 @@ class EventDataset(Dataset):
         stride: int = 1,
         max_future: int = 200,
         min_context: int = 128,
+        entity_id: object = "",
     ):
         self.x = torch.from_numpy(np.asarray(x, dtype=np.float32))
+        self.entity_id = str(entity_id)
         self.labels = np.asarray(labels, dtype=np.int32)
         self.max_context = max_context
         self.stride = stride
@@ -70,11 +72,12 @@ class EventDataset(Dataset):
             self.x[ctx_start:t],
             torch.tensor(float(self._tte[t])),
             torch.tensor(t, dtype=torch.long),
+            self.entity_id,
         )
 
 
 def collate_event(batch):
-    contexts, ttes, ts = zip(*batch)
+    contexts, ttes, ts, entity_ids = zip(*batch)
     B = len(contexts)
     max_len = max(c.shape[0] for c in contexts)
     C = contexts[0].shape[1]
@@ -85,7 +88,7 @@ def collate_event(batch):
         tc = contexts[i].shape[0]
         ctx_padded[i, :tc] = contexts[i]
         ctx_mask[i, :tc] = False
-    return ctx_padded, ctx_mask, torch.stack(ttes), torch.stack(ts)
+    return ctx_padded, ctx_mask, torch.stack(ttes), torch.stack(ts), list(entity_ids)
 
 
 # ---------------------------------------------------------------------------
@@ -143,7 +146,7 @@ def finetune(
     for epoch in range(n_epochs):
         model.train()
         losses = []
-        for ctx, ctx_m, tte, _t_idx in train_loader:
+        for ctx, ctx_m, tte, _t_idx, _eid in train_loader:
             ctx, ctx_m = ctx.to(device), ctx_m.to(device)
             tte = tte.to(device)
 
@@ -193,7 +196,7 @@ def _eval_ft_loss(
 ) -> float:
     model.eval()
     losses = []
-    for ctx, ctx_m, tte, _t_idx in loader:
+    for ctx, ctx_m, tte, _t_idx, _eid in loader:
         ctx, ctx_m = ctx.to(device), ctx_m.to(device)
         tte = tte.to(device)
         cdf = model.finetune_forward(ctx, h_tensor, ctx_m, mode)
@@ -206,7 +209,7 @@ def _estimate_pos_weight(
     loader: DataLoader, horizons: torch.Tensor, clamp_max: float = 1000.0
 ) -> float:
     n_pos, n_tot = 0.0, 0
-    for _ctx, _ctx_m, tte, _t_idx in loader:
+    for _ctx, _ctx_m, tte, _t_idx, _eid in loader:
         y = build_label_surface(tte.unsqueeze(1), horizons.cpu()).squeeze(1)
         n_pos += float(y.sum().item())
         n_tot += int(y.numel())
@@ -232,8 +235,8 @@ def evaluate(
     model.eval()
     h_tensor = torch.tensor(horizons, dtype=torch.float32, device=device)
 
-    p_list, y_list, t_list = [], [], []
-    for ctx, ctx_m, tte, t_idx in test_loader:
+    p_list, y_list, t_list, e_list = [], [], [], []
+    for ctx, ctx_m, tte, t_idx, eid in test_loader:
         ctx, ctx_m = ctx.to(device), ctx_m.to(device)
         tte = tte.to(device)
         cdf = model.finetune_forward(ctx, h_tensor, ctx_m, mode)
@@ -241,8 +244,14 @@ def evaluate(
         p_list.append(cdf.cpu().numpy())
         y_list.append(y.cpu().numpy())
         t_list.append(t_idx.numpy())
+        e_list.extend(eid)
 
     p_surface = np.concatenate(p_list, axis=0)
     y_surface = np.concatenate(y_list, axis=0)
     t_index = np.concatenate(t_list, axis=0)
-    return {"p_surface": p_surface, "y_surface": y_surface, "t_index": t_index}
+    return {
+        "p_surface": p_surface,
+        "y_surface": y_surface,
+        "t_index": t_index,
+        "entity_id": np.asarray(e_list, dtype=str),
+    }

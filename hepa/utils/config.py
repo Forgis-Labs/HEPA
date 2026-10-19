@@ -33,6 +33,10 @@ PROTOCOL: Dict[str, object] = {
     "sync_interval_steps": 100,  # only used if target_mode == 'periodic_sync'
     # Context window
     "max_context": 512,
+    # first observation time of the event surface: windows are scored once
+    # this many steps have been observed. Selects which part of each entity's
+    # life is scored (and so the label prevalence per horizon).
+    "min_context": 128,
     # Pretraining (Table 7 – Pretraining block)
     "pre_epochs": 50,
     "pre_batch": 64,
