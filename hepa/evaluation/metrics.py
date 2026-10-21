@@ -129,15 +129,65 @@ def h_auroc(
     p_surface: np.ndarray,
     y_surface: np.ndarray,
     horizon_labels: Optional[List[int]] = None,
+    degenerate_prevalence: float = 1e-3,
 ) -> float:
-    """Mean per-horizon AUROC across horizons with 0 < prevalence < 1.
+    """Mean per-horizon AUROC, skipping degenerate horizons.
 
     The paper's primary metric. Robust to drifting horizon base rates that
-    can make pooled AUPRC misleading.
+    can make pooled AUPRC misleading. A horizon is degenerate when its
+    prevalence is below ``degenerate_prevalence`` or above one minus it
+    (PROTOCOL.md: 0.001 / 0.999).
     """
     rows = per_horizon_auroc(p_surface, y_surface, horizon_labels)
-    vals = [v for v in rows["auroc_per_k"] if not np.isnan(v)]
+    vals = [
+        v
+        for v, prev in zip(rows["auroc_per_k"], rows["prevalence_per_k"])
+        if not np.isnan(v) and degenerate_prevalence <= prev <= 1.0 - degenerate_prevalence
+    ]
     return float(np.mean(vals)) if vals else float("nan")
+
+
+# ---------------------------------------------------------------------------
+# Time-to-event projection (Appendix J)
+# ---------------------------------------------------------------------------
+
+
+def expected_time_to_event(p_surface: np.ndarray, horizons: List[int]) -> np.ndarray:
+    """E[Δt] per row of a CDF surface: Σ Δt · P(event at Δt).
+
+    The mass beyond the last horizon (1 − p at Δt_K) is placed at Δt_K, the
+    smallest value consistent with it; on C-MAPSS the label cap (125 < 150)
+    makes the choice immaterial.
+    """
+    p = np.asarray(p_surface, dtype=np.float64)
+    h = np.asarray(horizons, dtype=np.float64)
+    pmf = np.diff(p, axis=1, prepend=0.0)
+    return pmf @ h + (1.0 - p[:, -1]) * h[-1]
+
+
+def rmse_time_to_event(
+    p_surface: np.ndarray,
+    y_surface: np.ndarray,
+    horizons: List[int],
+    cap: int,
+) -> float:
+    """RMSE of E[Δt] against the labelled time-to-event, both capped at ``cap``.
+
+    The time-to-event is read back from the label surface as the first horizon
+    labelled positive. A row with no positive has its event beyond the last
+    horizon, so ``cap`` must not exceed that horizon for the capped label to be
+    known.
+    """
+    h = np.asarray(horizons, dtype=np.float64)
+    if cap > h[-1]:
+        raise ValueError(
+            f"cap {cap} exceeds the last horizon {h[-1]:g}; censored rows would be mislabelled"
+        )
+    y = np.asarray(y_surface).astype(bool)
+    tte = np.where(y.any(axis=1), h[np.argmax(y, axis=1)], cap)
+    tte = np.minimum(tte, cap)
+    est = np.minimum(expected_time_to_event(p_surface, horizons), cap)
+    return float(np.sqrt(np.mean((est - tte) ** 2)))
 
 
 # ---------------------------------------------------------------------------

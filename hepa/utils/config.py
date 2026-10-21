@@ -10,7 +10,7 @@ z-score with no per-window RevIN and a fixed-epoch finetune (see NORM_POLICY and
 
 from __future__ import annotations
 
-from typing import Dict, List
+from typing import Dict, List, Optional
 
 # ---------------------------------------------------------------------------
 # Default protocol (matches paper Table 7 / Section M exactly)
@@ -107,6 +107,20 @@ HORIZONS_BY_DATASET: Dict[str, List[int]] = {
     "BeijingAQ": ANOMALY_HORIZONS,
     "VIX": ANOMALY_HORIZONS,
 }
+
+# RMSE is reported for C-MAPSS only (PROTOCOL.md), with RUL labels capped at
+# 125 cycles following STAR (Appendix L).
+RUL_CAP_BY_DATASET: Dict[str, int] = {
+    "FD001": 125,
+    "FD002": 125,
+    "FD003": 125,
+    "FD004": 125,
+}
+
+
+def get_rul_cap(dataset: str) -> Optional[int]:
+    """Return the RUL cap for datasets that report RMSE, else None."""
+    return RUL_CAP_BY_DATASET.get(dataset)
 
 
 def get_horizons(dataset: str) -> List[int]:

@@ -20,16 +20,19 @@ from torch.utils.data import ConcatDataset, DataLoader
 from hepa.data import load_dataset
 from hepa.data._common import global_zscore_bundle
 from hepa.evaluation import (
+    brier_score,
     evaluate_probability_surface,
+    expected_calibration_error,
     h_auroc,
     monotonicity_violation_rate,
     per_horizon_auroc,
+    rmse_time_to_event,
     save_surface,
 )
 from hepa.model import HEPA
 from hepa.training.finetune import EventDataset, collate_event, evaluate, finetune
 from hepa.training.pretrain import PretrainDataset, collate_pretrain, pretrain
-from hepa.utils import PROTOCOL, get_context, get_norm_mode, set_seed
+from hepa.utils import PROTOCOL, get_context, get_norm_mode, get_rul_cap, set_seed
 
 
 def _build_event_loader(
@@ -210,11 +213,22 @@ def main() -> None:
     per_h = per_horizon_auroc(surf["p_surface"], surf["y_surface"], horizons)
     h_aur = h_auroc(surf["p_surface"], surf["y_surface"], horizons)
     mono = monotonicity_violation_rate(surf["p_surface"])
+    ece = expected_calibration_error(surf["p_surface"], surf["y_surface"])
+    brier = brier_score(surf["p_surface"], surf["y_surface"])
+    rul_cap = get_rul_cap(args.dataset)
+    rmse = (
+        rmse_time_to_event(surf["p_surface"], surf["y_surface"], horizons, rul_cap)
+        if rul_cap is not None
+        else None
+    )
 
     print(
         f"  pooled AUPRC={pooled['auprc']:.4f}  AUROC={pooled['auroc']:.4f}  "
         f"h-AUROC={h_aur:.4f}  monotonicity_violations={mono:.4f}"
     )
+    print(f"  ECE={ece:.4f}  Brier={brier:.4f}")
+    if rmse is not None:
+        print(f"  RMSE={rmse:.2f}  rul_cap={rul_cap}")
     for k, h in enumerate(horizons):
         print(
             f"    h={h:>4d}  AUROC={per_h['auroc_per_k'][k]:.3f}  "
@@ -240,6 +254,10 @@ def main() -> None:
                 "h_auroc": h_aur,
                 "per_horizon": per_h,
                 "monotonicity_violation_rate": mono,
+                "ece": ece,
+                "brier": brier,
+                "rmse_time_to_event": rmse,
+                "rul_cap": rul_cap,
             },
             fh,
             indent=2,
