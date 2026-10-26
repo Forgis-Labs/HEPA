@@ -71,6 +71,10 @@ def main() -> None:
     parser.add_argument("--pre-epochs", type=int, default=PROTOCOL["pre_epochs"])
     parser.add_argument("--ft-epochs", type=int, default=PROTOCOL["ft_epochs"])
     parser.add_argument("--out", type=str, default="outputs/")
+    parser.add_argument("--ft-mode", choices=("pred_ft", "e2e"), default="pred_ft")
+    parser.add_argument(
+        "--predictor-init", choices=("pretrained", "random"), default="pretrained"
+    )
     args = parser.parse_args()
 
     out_dir = Path(args.out)
@@ -78,7 +82,10 @@ def main() -> None:
     device = "cuda" if torch.cuda.is_available() else "cpu"
     set_seed(args.seed)
 
-    print(f"HEPA train: dataset={args.dataset} seed={args.seed} device={device}")
+    print(
+        f"HEPA train: dataset={args.dataset} seed={args.seed} device={device} "
+        f"ft_mode={args.ft_mode} predictor_init={args.predictor_init}"
+    )
     bundle = load_dataset(args.dataset)
     # Per-dataset normalization (see hepa.utils.config.NORM_POLICY): C-MAPSS uses
     # a single global per-channel z-score and NO per-window RevIN; all other
@@ -185,13 +192,15 @@ def main() -> None:
     )
 
     # ---- finetune ----------------------------------------------------------
+    if args.predictor_init == "random":
+        model.reset_predictor()
     print("[finetune]")
     finetune(
         model,
         ft_train,
         ft_val,
         horizons,
-        mode="pred_ft",
+        mode=args.ft_mode,
         lr=float(PROTOCOL["ft_lr"]),
         weight_decay=float(PROTOCOL["ft_weight_decay"]),
         n_epochs=args.ft_epochs,
@@ -205,7 +214,7 @@ def main() -> None:
 
     # ---- evaluate ----------------------------------------------------------
     print("[evaluate]")
-    surf = evaluate(model, ft_test, horizons, mode="pred_ft", device=device)
+    surf = evaluate(model, ft_test, horizons, mode=args.ft_mode, device=device)
     pooled = evaluate_probability_surface(surf["p_surface"], surf["y_surface"])
     per_h = per_horizon_auroc(surf["p_surface"], surf["y_surface"], horizons)
     h_aur = h_auroc(surf["p_surface"], surf["y_surface"], horizons)
@@ -235,6 +244,8 @@ def main() -> None:
             {
                 "dataset": args.dataset,
                 "seed": args.seed,
+                "ft_mode": args.ft_mode,
+                "predictor_init": args.predictor_init,
                 "n_params": n_params,
                 "pooled": pooled,
                 "h_auroc": h_aur,

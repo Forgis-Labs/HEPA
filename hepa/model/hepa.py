@@ -90,6 +90,17 @@ class HEPA(nn.Module):
         for p in self.target_encoder.parameters():
             p.requires_grad = target_requires_grad
 
+    # --- predictor management -----------------------------------------------
+
+    def reset_predictor(self) -> None:
+        """Re-initialise the predictor as if it had never been pretrained."""
+        # Pretraining trains the predictor as well, so a finetune run that starts
+        # it from scratch is the only way to measure what those weights carry
+        # (paper Appendix I.2 puts it at +0.003 h-AUROC or less).
+        for m in self.predictor.modules():
+            if hasattr(m, "reset_parameters"):
+                m.reset_parameters()
+
     # --- target encoder management ------------------------------------------
 
     def _init_target_encoder(self) -> None:
